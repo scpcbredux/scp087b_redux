@@ -1,0 +1,14 @@
+[package]
+name = "scp087b_redux"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.14.1", features = ["jpeg", "wav"] }
+bevy_asset_loader = "0.21.0"
+bevy-inspector-egui = "0.25.2"
+rand = "0.8.5"
+bevy_rand = { version = "0.7.1", features = ["rand_chacha", "wyrand"] }
+bevy-panic-handler = "3.0.0"
+avian3d = "0.1.2"
+leafwing-input-manager = "0.15.0"
