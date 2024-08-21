@@ -1,7 +1,10 @@
-use crate::{map_gen::{Room, RoomType}, MapAssets};
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use std::collections::HashMap;
+
+use crate::resources::MapAssets;
+
+use super::map_gen::{Room, RoomType};
 
 #[derive(Resource, Default)]
 pub struct ObjectPool {

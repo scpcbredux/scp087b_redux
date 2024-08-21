@@ -1,12 +1,16 @@
+use crate::{
+    game::{
+        components::{FloorLabel, FloorLabelUi},
+        map_gen::{floor_transform, room_label_transform, Map},
+        pooling::ObjectPool,
+    },
+    resources::{AudioAssets, MapAssets},
+};
+
 use super::{
     components::{Player, PlayerCamera},
     resources::{PlayerAction, PlayerInput},
     ANGLE_EPSILON,
-};
-use crate::{
-    map_gen::{floor_transform, room_label_transform, Map},
-    pooling::ObjectPool,
-    AudioAssets, FloorLabel, FloorLabelUi, MapAssets,
 };
 use avian3d::prelude::*;
 use bevy::prelude::*;
@@ -143,7 +147,7 @@ pub fn player_label_floor(
     map: Res<Map>,
     p_query: Query<&Player, (Without<FloorLabelUi>, Without<FloorLabel>)>,
     mut ui_query: Query<&mut Text, (With<FloorLabelUi>, Without<FloorLabel>, Without<Player>)>,
-    mut l_query: Query<&mut Transform, (With<FloorLabel>, Without<FloorLabelUi>, Without<Player>)>,
+    mut l_query: Query<(&mut Transform, &mut Visibility), (With<FloorLabel>, Without<FloorLabelUi>, Without<Player>)>,
 ) {
     if let Ok(player) = p_query.get_single() {
         if let Some(label) = &map.rooms[player.floor_index - 1].label {
@@ -151,9 +155,9 @@ pub fn player_label_floor(
                 text.sections[0].value = label.to_string();
             }
 
-            if let Ok(mut transform) = l_query.get_single_mut() {
+            for (mut transform, mut visibility) in &mut l_query {
                 *transform = room_label_transform(player.floor_index - 1);
-                // info!("{:#?}", transform);
+                *visibility = Visibility::Visible;
             }
         }
     }
