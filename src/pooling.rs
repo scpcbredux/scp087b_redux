@@ -1,4 +1,4 @@
-use crate::{map_gen::RoomType, MapAssets};
+use crate::{map_gen::{Room, RoomType}, MapAssets};
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use std::collections::HashMap;
@@ -6,14 +6,14 @@ use std::collections::HashMap;
 #[derive(Resource, Default)]
 pub struct ObjectPool {
     available_rooms: HashMap<RoomType, Vec<Entity>>,
-    pub active_rooms: HashMap<usize, Entity>, // Maps room indices to active entities
+    pub active_rooms: HashMap<usize, Entity>,
 }
 
 impl ObjectPool {
     pub fn get_or_spawn(
         &mut self,
         room_index: usize,
-        room_type: RoomType,
+        room: &Room,
         commands: &mut Commands,
         map_assets: &Res<MapAssets>,
         transform: Transform,
@@ -26,14 +26,14 @@ impl ObjectPool {
         }
 
         // Get the available rooms list, or create an empty list if none exists
-        let available_rooms = self.available_rooms.entry(room_type).or_default();
+        let available_rooms = self.available_rooms.entry(room.kind).or_default();
 
         let entity = if let Some(entity) = available_rooms.pop() {
             commands.entity(entity).insert(transform);
             entity
         } else {
             // Spawn a new entity if none are available
-            let scene = match room_type {
+            let scene = match room.kind {
                 RoomType::Map => map_assets.map.clone(),
                 RoomType::Map0 => map_assets.map0.clone(),
                 RoomType::Map1 => map_assets.map1.clone(),

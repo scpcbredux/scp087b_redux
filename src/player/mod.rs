@@ -20,7 +20,8 @@ impl Plugin for PlayerPlugin {
                 player_input,
                 player_move,
                 player_look,
-                player_floor,
+                player_label_floor,
+                player_cull_floor,
                 player_death,
             )
                 .run_if(in_state(GameState::Game)),

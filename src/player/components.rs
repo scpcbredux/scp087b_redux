@@ -19,7 +19,7 @@ impl Default for Player {
         Self {
             kill_timer: 0.0,
             floor_index: 1,
-            camera_height: Vec3::Y * 0.5,
+            camera_height: Vec3::Y * 0.7,
             mouse_sensitivity: 0.003,
             footstep_timer: Timer::new(Duration::from_secs_f32(2.0), TimerMode::Repeating),
         }

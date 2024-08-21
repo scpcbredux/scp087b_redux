@@ -4,9 +4,9 @@ use super::{
     ANGLE_EPSILON,
 };
 use crate::{
-    map_gen::{floor_transform, Map},
+    map_gen::{floor_transform, room_label_transform, Map},
     pooling::ObjectPool,
-    AudioAssets, FloorLabel, MapAssets,
+    AudioAssets, FloorLabel, FloorLabelUi, MapAssets,
 };
 use avian3d::prelude::*;
 use bevy::prelude::*;
@@ -57,14 +57,16 @@ pub fn player_input(
 
 pub fn player_move(
     time: Res<Time>,
-    mut query: Query<(&mut Player, &mut LinearVelocity)>,
+    mut query: Query<(&mut Player, &Transform, &mut LinearVelocity)>,
     input: Res<PlayerInput>,
     mut commands: Commands,
     audio_assets: Res<AudioAssets>,
 ) {
     let dt = time.delta_seconds();
 
-    for (mut player, mut linear_velocity) in &mut query {
+    for (mut player, transform, mut linear_velocity) in &mut query {
+        player.floor_index = ((-transform.translation.y - 0.5) as usize / 2) + 1;
+
         let mut move_to_world = Mat3::from_axis_angle(Vec3::Y, input.yaw);
         move_to_world.z_axis *= -1.0;
 
@@ -100,23 +102,14 @@ pub fn player_look(
     }
 }
 
-pub fn player_floor(
+pub fn player_cull_floor(
     map: Res<Map>,
-    mut p_query: Query<(&Transform, &mut Player), Without<FloorLabel>>,
-    mut ui_query: Query<&mut Text, (With<FloorLabel>, Without<Player>)>,
-    mut pool: ResMut<ObjectPool>,
     mut commands: Commands,
     map_assets: Res<MapAssets>,
+    mut pool: ResMut<ObjectPool>,
+    query: Query<&Player>,
 ) {
-    for (transform, mut player) in &mut p_query {
-        player.floor_index = ((-transform.translation.y - 0.5) as usize / 2) + 1;
-
-        if let Ok(mut text) = ui_query.get_single_mut() {
-            if let Some(label) = &map.rooms[player.floor_index].label {
-                text.sections[0].value = label.to_string();
-            }
-        }
-
+    if let Ok(player) = query.get_single() {
         let nearest_rooms = map.nearest_rooms_to_floor(player.floor_index, 1);
 
         // Track which rooms should remain active
@@ -124,10 +117,9 @@ pub fn player_floor(
 
         for &room_index in &nearest_rooms {
             if let Some(room_index) = room_index {
-                let room_type = map.rooms[room_index].kind;
                 pool.get_or_spawn(
                     room_index,
-                    room_type,
+                    &map.rooms[room_index],
                     &mut commands,
                     &map_assets,
                     floor_transform(room_index),
@@ -142,6 +134,26 @@ pub fn player_floor(
             if !new_active_rooms.contains(&room_index) {
                 let room_type = map.rooms[room_index].kind;
                 pool.release(room_index, room_type);
+            }
+        }
+    }
+}
+
+pub fn player_label_floor(
+    map: Res<Map>,
+    p_query: Query<&Player, (Without<FloorLabelUi>, Without<FloorLabel>)>,
+    mut ui_query: Query<&mut Text, (With<FloorLabelUi>, Without<FloorLabel>, Without<Player>)>,
+    mut l_query: Query<&mut Transform, (With<FloorLabel>, Without<FloorLabelUi>, Without<Player>)>,
+) {
+    if let Ok(player) = p_query.get_single() {
+        if let Some(label) = &map.rooms[player.floor_index - 1].label {
+            if let Ok(mut text) = ui_query.get_single_mut() {
+                text.sections[0].value = label.to_string();
+            }
+
+            if let Ok(mut transform) = l_query.get_single_mut() {
+                *transform = room_label_transform(player.floor_index - 1);
+                // info!("{:#?}", transform);
             }
         }
     }

@@ -6,7 +6,7 @@ use bevy::{
     window::CursorGrabMode,
 };
 use bevy_asset_loader::prelude::*;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_mod_billboard::prelude::*;
 use bevy_rand::prelude::*;
 use leafwing_input_manager::prelude::*;
 use map_gen::{FloorAction, Map};
@@ -37,11 +37,11 @@ fn main() {
         .add_plugins(PlayerPlugin)
         // Other Plugins
         .add_plugins((
-            WorldInspectorPlugin::new(),
             EntropyPlugin::<WyRand>::default(),
             bevy_panic_handler::PanicHandler::new().build(),
             PhysicsPlugins::default(),
             InputManagerPlugin::<PlayerAction>::default(),
+            BillboardPlugin,
         ))
         .insert_resource(ObjectPool::default())
         .init_state::<GameState>()
@@ -53,9 +53,12 @@ fn main() {
         )
         .add_systems(
             OnEnter(GameState::Game),
-            (create_map, create_player).chain(),
+            (create_map, create_glimpses, create_player).chain(),
         )
-        .add_systems(Update, update_floors.run_if(in_state(GameState::Game)))
+        .add_systems(
+            Update,
+            (update_floors, update_glimpses).run_if(in_state(GameState::Game)),
+        )
         .run();
 }
 
@@ -119,6 +122,8 @@ struct MapAssets {
     font: Handle<Font>,
     #[asset(path = "map/sign.jpg")]
     sign_texture: Handle<Image>,
+    #[asset(path = "map/glimpses", collection(typed))]
+    glimpse_textures: Vec<Handle<Image>>,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States)]
@@ -178,8 +183,12 @@ fn create_player(
             ..default()
         },
         PlayerCamera,
+        SpatialListener::new(4.0),
     ));
 }
+
+#[derive(Component)]
+pub struct Glimpse;
 
 fn create_map(
     mut commands: Commands,
@@ -193,23 +202,30 @@ fn create_map(
     ambient_light.brightness = 40.0;
 
     // Door
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Cuboid::new(1.0, 2.0, 1.0)),
-        material: materials.add(StandardMaterial {
-            base_color_texture: Some(map_assets.door_texture.clone()),
-            ..default()
-        }),
-        transform: Transform {
-            translation: Vec3::new(-3.5, -1.0, 0.5),
-            rotation: Quat::from_rotation_y(f32::to_radians(-90.0)),
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(Cuboid::new(1.0, 2.0, 1.0)),
+            material: materials.add(StandardMaterial {
+                base_color_texture: Some(map_assets.door_texture.clone()),
+                ..default()
+            }),
+            transform: Transform {
+                translation: Vec3::new(-3.5, -1.0, 0.5),
+                rotation: Quat::from_rotation_y(f32::to_radians(-90.0)),
+                ..default()
+            },
             ..default()
         },
-        ..default()
-    });
+        Collider::cuboid(1.0, 2.0, 1.0),
+        RigidBody::Static,
+    ));
 
+    // Generate Map
     let mut map = Map::new(FLOOR_AMOUNT);
     map.generate(&mut rng);
+    commands.insert_resource(map);
 
+    // Floor Label
     let size = Extent3d {
         width: 512,
         height: 512,
@@ -276,7 +292,7 @@ fn create_map(
                         color: Color::BLACK,
                     },
                 ),
-                FloorLabel,
+                FloorLabelUi,
             ));
         });
 
@@ -290,38 +306,21 @@ fn create_map(
         RigidBody::Static,
     ));
 
-    // TODO: Maybe include this in the pooling?
-    for (i, room) in map.rooms.iter().enumerate() {
-        if room.label.is_some() {
-            let mut transform = Transform {
-                rotation: Quat::from_rotation_x(f32::to_radians(-90.0)),
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
+            material: materials.add(StandardMaterial {
+                base_color_texture: Some(image_handle.clone()),
                 ..default()
-            };
-
-            if (i as f32 / 2.0).floor() == (i as f32 / 2.0).ceil() {
-                transform.translation = Vec3::new(-0.24, -(i as f32) * 2.0 - 0.6, 0.5);
-                transform.rotate_y(f32::to_radians(180.0));
-            } else {
-                transform.translation =
-                    Vec3::new(7.4 + 0.6 + 0.24, -(i as f32) * 2.0 - 0.6, 6.0 + 0.5);
-            }
-
-            commands.spawn(PbrBundle {
-                mesh: meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
-                material: materials.add(StandardMaterial {
-                    base_color_texture: Some(image_handle.clone()),
-                    reflectance: 0.02,
-                    unlit: false,
-                    ..default()
-                }),
-                transform,
-                ..default()
-            });
-        }
-    }
-
-    commands.insert_resource(map);
+            }),
+            ..default()
+        },
+        FloorLabel,
+    ));
 }
+
+#[derive(Component)]
+struct FloorLabelUi;
 
 #[derive(Component)]
 struct FloorLabel;
@@ -389,7 +388,11 @@ fn update_floors(
                     // m�rk� vilahtaa k�yt�v�n p��ss�
                     match map.floors[player_floor].timer {
                         1.0 => {
-                            if distance2(transform, end_x, floor_y, floor_z) < 1.5 {
+                            if transform
+                                .translation
+                                .distance(Vec3::new(end_x, floor_y, floor_z))
+                                < 1.5
+                            {
                                 // CurrEnemy = CreateEnemy(EndX, FloorY-0.5, FloorZ,mental)
                                 let horror_sfx =
                                     audio_assets.horror_sfx[rng.gen_range(0..2)].clone();
@@ -401,7 +404,11 @@ fn update_floors(
                             }
                         }
                         2.0 => {
-                            if distance2(transform, floor_x, floor_y, floor_z) < 1.5 {
+                            if transform
+                                .translation
+                                .distance(Vec3::new(floor_x, floor_y, floor_z))
+                                < 1.5
+                            {
                                 // CurrEnemy = CreateEnemy(FloorX, FloorY-0.5, FloorZ,mental)
                                 let horror_sfx =
                                     audio_assets.horror_sfx[rng.gen_range(0..2)].clone();
@@ -413,7 +420,11 @@ fn update_floors(
                             }
                         }
                         3.0 => {
-                            if distance2(transform, start_x, floor_y, floor_z) < 1.5 {
+                            if transform
+                                .translation
+                                .distance(Vec3::new(start_x, floor_y, floor_z))
+                                < 1.5
+                            {
                                 // CurrEnemy = CreateEnemy(startX, FloorY-0.5, FloorZ,mental)
                                 let horror_sfx =
                                     audio_assets.horror_sfx[rng.gen_range(0..2)].clone();
@@ -438,7 +449,10 @@ fn update_floors(
                 }
                 FloorAction::Lights => {
                     if map.floors[player_floor].timer == 1.0
-                        && distance2(transform, floor_x, floor_y, floor_z) < 1.0
+                        && transform
+                            .translation
+                            .distance(Vec3::new(floor_x, floor_y, floor_z))
+                            < 1.0
                     {
                         commands.spawn(AudioBundle {
                             source: audio_assets.horror_sfx[1].clone(),
@@ -457,8 +471,11 @@ fn update_floors(
                         if (player_floor as f32 / 2.0).floor() == (player_floor as f32 / 2.0).ceil()
                         {
                             // parillinen
-                            if distance2(transform, start_x - 1.5, floor_y - 0.5, floor_z - 5.0)
-                                < 0.25
+                            if transform.translation.distance(Vec3::new(
+                                start_x - 1.5,
+                                floor_y - 0.5,
+                                floor_z - 5.0,
+                            )) < 0.25
                             {
                                 // CurrEnemy = CreateEnemy(startx-1.5,FloorY-0.5,FloorZ-2.0,tex173)
                                 // CurrEnemy\speed = 0.01
@@ -471,8 +488,11 @@ fn update_floors(
                             }
                         } else {
                             // pariton
-                            if distance2(transform, start_x + 1.5, floor_y - 0.5, floor_z + 5.0)
-                                < 0.25
+                            if transform.translation.distance(Vec3::new(
+                                start_x + 1.5,
+                                floor_y - 0.5,
+                                floor_z + 5.0,
+                            )) < 0.25
                             {
                                 // CurrEnemy = CreateEnemy(startx+1.5,FloorY-0.5,FloorZ+2.0,tex173)
                                 // CurrEnemy\speed = 0.01
@@ -493,8 +513,11 @@ fn update_floors(
                         if (player_floor as f32 / 2.0).floor() == (player_floor as f32 / 2.0).ceil()
                         {
                             // parillinen
-                            if distance2(transform, start_x + 0.5, floor_y - 0.5, floor_z - 5.0)
-                                < 0.25
+                            if transform.translation.distance(Vec3::new(
+                                start_x + 0.5,
+                                floor_y - 0.5,
+                                floor_z - 5.0,
+                            )) < 0.25
                             {
                                 // CurrEnemy = CreateEnemy(startx+0.5,FloorY-0.5,FloorZ-2.0,tex173)
                                 // CurrEnemy\speed = 0.01
@@ -507,8 +530,11 @@ fn update_floors(
                             }
                         } else {
                             // pariton
-                            if distance2(transform, start_x - 0.5, floor_y - 0.5, floor_z + 5.0)
-                                < 0.25
+                            if transform.translation.distance(Vec3::new(
+                                start_x - 0.5,
+                                floor_y - 0.5,
+                                floor_z + 5.0,
+                            )) < 0.25
                             {
                                 // CurrEnemy = CreateEnemy(startx-0.5,FloorY-0.5,FloorZ+2.0,tex173)
                                 // CurrEnemy\speed = 0.01
@@ -530,9 +556,73 @@ fn update_floors(
     }
 }
 
-fn distance2(transform: &Transform, x1: f32, y1: f32, z1: f32) -> f32 {
-    let vxcomp = (x1 - transform.translation.x).abs();
-    let vycomp = (y1 - transform.translation.y).abs();
-    let vzcomp = (z1 - transform.translation.z).abs();
-    (vxcomp * vxcomp + vycomp * vycomp + vzcomp * vzcomp).sqrt()
+fn update_glimpses(
+    mut commands: Commands,
+    audio_assets: Res<AudioAssets>,
+    g_query: Query<(&Transform, Entity), (With<Glimpse>, Without<Player>)>,
+    p_query: Query<(&Player, &Transform), Without<Glimpse>>,
+) {
+    for (player, p_transform) in &p_query {
+        for (g_transform, g_entity) in &g_query {
+            if player.floor_index - 1 == ((-g_transform.translation.y - 0.5) / 2.0) as usize {
+                if p_transform.translation.distance(Vec3::new(
+                    g_transform.translation.x,
+                    g_transform.translation.y,
+                    g_transform.translation.z,
+                )) < 2.3
+                {
+                    // TODO: Make a 3d audio
+                    commands.spawn(AudioBundle {
+                        source: audio_assets.no_sfx.clone(),
+                        settings: PlaybackSettings::DESPAWN,
+                    });
+
+                    commands.entity(g_entity).despawn();
+                }
+            }
+        }
+    }
+}
+
+fn create_glimpses(
+    mut commands: Commands,
+    map: Res<Map>,
+    map_assets: Res<MapAssets>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut rng: ResMut<GlobalEntropy<WyRand>>,
+) {
+    let glimpse_texture = if rng.gen_bool(1.0) {
+        map_assets.glimpse_textures[0].clone()
+    } else {
+        map_assets.glimpse_textures[1].clone()
+    };
+    let glimpse_mesh: Handle<Mesh> = meshes.add(Rectangle::new(0.3, 0.3)).into();
+
+    // TODO: Maybe include this in the pooling?
+    for (i, floor) in map.floors.iter().enumerate() {
+        if floor.action != FloorAction::Steps || rng.gen_range(1..7) != 1 {
+            continue;
+        }
+
+        let floor_y = -((i as f32 - 1.0) * 2.0 + 1.0);
+        let start_x = 0.8;
+        let end_x = 7.2;
+        let floor_z = if i % 2 == 0 {
+            6.55 // Even index
+        } else {
+            0.3 // Odd index
+        };
+
+        let floor_x = rng.gen_range(start_x..end_x);
+
+        commands.spawn((
+            BillboardTextureBundle {
+                transform: Transform::from_xyz(floor_x, floor_y, floor_z),
+                texture: BillboardTextureHandle(glimpse_texture.clone()),
+                mesh: BillboardMeshHandle(glimpse_mesh.clone()),
+                ..default()
+            },
+            Glimpse,
+        ));
+    }
 }

@@ -249,13 +249,37 @@ impl Map {
 pub fn floor_transform(i: usize) -> Transform {
     let mut transform = Transform::default();
 
-    if (i as f32 / 2.0).floor() == (i as f32 / 2.0).ceil() {
-        // parillinen
-        transform.translation = Vec3::new(0.0, -(i as f32) * 2.0, 0.0);
+    // Calculate common values
+    let translation_y = -(i as f32) * 2.0;
+    let is_even = i % 2 == 0;
+
+    if is_even {
+        // Even index
+        transform.translation = Vec3::new(0.0, translation_y, 0.0);
     } else {
-        // pariton
+        // Odd index
         transform.rotate_y(f32::to_radians(180.0));
-        transform.translation = Vec3::new(8.0, -(i as f32) * 2.0, 7.0);
+        transform.translation = Vec3::new(8.0, translation_y, 7.0);
+    }
+
+    transform
+}
+
+pub fn room_label_transform(i: usize) -> Transform {
+    let mut transform = Transform {
+        rotation: Quat::from_rotation_x(f32::to_radians(-90.0)),
+        ..default()
+    };
+
+    let i_f32 = i as f32;
+    let translation_y = -i_f32 * 2.0 - 0.6;
+    let is_even = i % 2 == 0;
+
+    if is_even {
+        transform.translation = Vec3::new(-0.24, translation_y, 0.5);
+        transform.rotate_y(f32::to_radians(180.0));
+    } else {
+        transform.translation = Vec3::new(8.04, translation_y, 6.5);
     }
 
     transform
