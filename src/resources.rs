@@ -36,23 +36,25 @@ pub struct AudioAssets {
 
 #[derive(AssetCollection, Resource)]
 pub struct MapAssets {
-    #[asset(path = "map/map0.glb#Scene0")]
+    // TODO: Make into an array: rooms
+    #[asset(path = "map/rooms/map0.gltf#Scene0")]
     pub map0: Handle<Scene>,
-    #[asset(path = "map/map.glb#Scene0")]
+    #[asset(path = "map/rooms/map.gltf#Scene0")]
     pub map: Handle<Scene>,
-    #[asset(path = "map/map1.glb#Scene0")]
+    #[asset(path = "map/rooms/map1.gltf#Scene0")]
     pub map1: Handle<Scene>,
-    #[asset(path = "map/map2.glb#Scene0")]
+    #[asset(path = "map/rooms/map2.gltf#Scene0")]
     pub map2: Handle<Scene>,
-    #[asset(path = "map/map3.glb#Scene0")]
+    #[asset(path = "map/rooms/map3.gltf#Scene0")]
     pub map3: Handle<Scene>,
-    #[asset(path = "map/map4.glb#Scene0")]
+    #[asset(path = "map/rooms/map4.gltf#Scene0")]
     pub map4: Handle<Scene>,
-    #[asset(path = "map/map5.glb#Scene0")]
+    #[asset(path = "map/rooms/map5.gltf#Scene0")]
     pub map5: Handle<Scene>,
-    #[asset(path = "map/map6.glb#Scene0")]
+    #[asset(path = "map/rooms/map6.gltf#Scene0")]
     pub map6: Handle<Scene>,
-    #[asset(path = "map/maze.glb#Scene0")]
+    // TODO: Finish the maze
+    #[asset(path = "map/rooms/maze.glb#Scene0")]
     pub map7: Handle<Scene>,
     #[asset(path = "map/door.jpg")]
     pub door_texture: Handle<Image>,

@@ -7,11 +7,7 @@ use crate::{
     resources::{AudioAssets, MapAssets},
 };
 
-use super::{
-    components::{Player, PlayerCamera},
-    resources::{PlayerAction, PlayerInput},
-    ANGLE_EPSILON,
-};
+use super::{components::*, resources::*, ANGLE_EPSILON};
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy_rand::prelude::*;
@@ -60,14 +56,9 @@ pub fn player_input(
 }
 
 pub fn player_move(
-    time: Res<Time>,
     mut query: Query<(&mut Player, &Transform, &mut LinearVelocity)>,
     input: Res<PlayerInput>,
-    mut commands: Commands,
-    audio_assets: Res<AudioAssets>,
 ) {
-    let dt = time.delta_seconds();
-
     for (mut player, transform, mut linear_velocity) in &mut query {
         player.floor_index = ((-transform.translation.y - 0.5) as usize / 2) + 1;
 
@@ -79,29 +70,55 @@ pub fn player_move(
 
         linear_velocity.0 = move_to_world * (input.movement * speed);
         linear_velocity.y = y_component;
-
-        player
-            .footstep_timer
-            .tick(Duration::from_secs_f32(dt * linear_velocity.length()));
-
-        if player.footstep_timer.finished() {
-            commands.spawn(AudioBundle {
-                source: audio_assets.step_sound.clone(),
-                settings: PlaybackSettings::REMOVE,
-            });
-        }
     }
 }
 
 pub fn player_look(
-    q_player: Query<(&Transform, &Player), Without<PlayerCamera>>,
-    mut q_camera: Query<&mut Transform, (With<PlayerCamera>, Without<Player>)>,
+    time: Res<Time>,
+    q_player: Query<(&Transform, &LinearVelocity, &Player), Without<PlayerCamera>>,
+    mut q_camera: Query<(&mut PlayerCamera, &mut Transform), Without<Player>>,
     input: Res<PlayerInput>,
 ) {
-    for (p_transform, player) in &q_player {
-        for mut c_transform in &mut q_camera {
-            c_transform.translation = p_transform.translation + player.camera_height;
-            c_transform.rotation = Quat::from_euler(EulerRot::YXZ, input.yaw, input.pitch, 0.0);
+    let dt = time.delta_seconds();
+
+    for (p_transform, linear_velocity, player) in &q_player {
+        for (mut camera, mut c_transform) in &mut q_camera {
+            camera.timer += dt * linear_velocity.length() / player.speed;
+
+            let c_off = Vec3::new(
+                (camera.timer * camera.speed / 2.0).cos(),
+                -(camera.timer * camera.speed).sin(),
+                0.0,
+            );
+
+            let rot = -(camera.timer * camera.speed / 2.0).cos() * camera.tilt;
+
+            c_transform.translation =
+                p_transform.translation + player.camera_height + c_off * camera.max_bob;
+            c_transform.rotation = Quat::from_euler(EulerRot::YXZ, input.yaw, input.pitch, 0.0)
+                * Quat::from_rotation_z(rot);
+        }
+    }
+}
+
+pub fn player_footsteps(
+    time: Res<Time>,
+    mut commands: Commands,
+    audio_assets: Res<AudioAssets>,
+    mut query: Query<(Entity, &LinearVelocity, &mut PlayerFootsteps, &Transform), With<Player>>,
+) {
+    let dt = time.delta_seconds();
+
+    for (entity, linear_velocity, mut footsteps, _transform) in &mut query {
+        footsteps
+            .timer
+            .tick(Duration::from_secs_f32(dt * linear_velocity.length()));
+
+        if footsteps.timer.finished() {
+            commands.entity(entity).insert(AudioBundle {
+                source: audio_assets.step_sound.clone(),
+                settings: PlaybackSettings::REMOVE,
+            });
         }
     }
 }
@@ -143,11 +160,15 @@ pub fn player_cull_floor(
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn player_label_floor(
     map: Res<Map>,
     p_query: Query<&Player, (Without<FloorLabelUi>, Without<FloorLabel>)>,
     mut ui_query: Query<&mut Text, (With<FloorLabelUi>, Without<FloorLabel>, Without<Player>)>,
-    mut l_query: Query<(&mut Transform, &mut Visibility), (With<FloorLabel>, Without<FloorLabelUi>, Without<Player>)>,
+    mut l_query: Query<
+        (&mut Transform, &mut Visibility),
+        (With<FloorLabel>, Without<FloorLabelUi>, Without<Player>),
+    >,
 ) {
     if let Ok(player) = p_query.get_single() {
         if let Some(label) = &map.rooms[player.floor_index - 1].label {

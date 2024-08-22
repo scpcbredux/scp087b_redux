@@ -20,6 +20,7 @@ impl Plugin for PlayerPlugin {
                 player_input,
                 player_move,
                 player_look,
+                player_footsteps,
                 player_label_floor,
                 player_cull_floor,
                 player_death,

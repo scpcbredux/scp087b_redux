@@ -271,8 +271,7 @@ pub fn room_label_transform(i: usize) -> Transform {
         transform.translation = Vec3::new(-0.24, -(i as f32) * 2.0 - 0.6, 0.5);
         transform.rotate_y(f32::to_radians(180.0));
     } else {
-        transform.translation =
-            Vec3::new(7.4 + 0.6 + 0.24, -(i as f32) * 2.0 - 0.6, 6.0 + 0.5);
+        transform.translation = Vec3::new(7.4 + 0.6 + 0.24, -(i as f32) * 2.0 - 0.6, 6.0 + 0.5);
     }
 
     transform

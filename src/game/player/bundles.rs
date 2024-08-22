@@ -6,6 +6,7 @@ use super::{components::*, resources::*};
 #[derive(Bundle)]
 pub struct PlayerBundle {
     pub player: Player,
+    pub player_footsteps: PlayerFootsteps,
     pub input_bundle: InputManagerBundle<PlayerAction>,
 }
 
@@ -13,6 +14,7 @@ impl Default for PlayerBundle {
     fn default() -> Self {
         Self {
             player: Default::default(),
+            player_footsteps: Default::default(),
             input_bundle: InputManagerBundle::<PlayerAction> {
                 action_state: ActionState::default(),
                 input_map: InputMap::new([
