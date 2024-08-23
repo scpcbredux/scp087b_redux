@@ -1,4 +1,4 @@
-use crate::GameState;
+use crate::AppState;
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use player::{resources::PlayerAction, PlayerPlugin};
@@ -20,12 +20,12 @@ impl Plugin for GamePlugin {
         app.add_plugins((PlayerPlugin, InputManagerPlugin::<PlayerAction>::default()))
             .insert_resource(ObjectPool::default())
             .add_systems(
-                OnEnter(GameState::Game),
+                OnEnter(AppState::Game),
                 (create_map, create_glimpses, create_player).chain(),
             )
             .add_systems(
                 Update,
-                (update_floors, update_glimpses).run_if(in_state(GameState::Game)),
+                (update_floors, update_glimpses).run_if(in_state(AppState::Game)),
             );
     }
 }

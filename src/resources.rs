@@ -32,10 +32,14 @@ pub struct AudioAssets {
     pub fire_on: Handle<AudioSource>,
     #[asset(path = "audio/fireout.ogg")]
     pub fire_off: Handle<AudioSource>,
+    // #[asset(path = "videos/startup_tss.avi")]
+    // pub startup_tts: Handle<VideoSource>,
 }
 
 #[derive(AssetCollection, Resource)]
 pub struct MapAssets {
+    #[asset(path = "map/scp.jpg")]
+    pub scp_logo: Handle<Image>,
     // TODO: Make into an array: rooms
     #[asset(path = "map/rooms/map0.gltf#Scene0")]
     pub map0: Handle<Scene>,

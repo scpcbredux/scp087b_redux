@@ -1,4 +1,4 @@
-use crate::GameState;
+use crate::AppState;
 use bevy::prelude::*;
 use resources::PlayerInput;
 use systems::*;
@@ -24,8 +24,10 @@ impl Plugin for PlayerPlugin {
                 player_label_floor,
                 player_cull_floor,
                 player_death,
+                player_ambience,
+                player_fall_damage,
             )
-                .run_if(in_state(GameState::Game)),
+                .run_if(in_state(AppState::Game)),
         );
     }
 }

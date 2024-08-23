@@ -46,7 +46,7 @@ pub fn create_player(
         Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
         RigidBody::Dynamic,
         LockedAxes::ROTATION_LOCKED,
-        GravityScale(1.0),
+        GravityScale(4.0),
         Position::from_xyz(-1.5, -1.0, 0.5),
         TransformBundle::default(),
         PlayerBundle::default(),
@@ -173,7 +173,7 @@ pub fn create_map(
                     "2",
                     TextStyle {
                         font: map_assets.font.clone(),
-                        font_size: 256.0,
+                        font_size: 156.0,
                         color: Color::BLACK,
                     },
                 ),

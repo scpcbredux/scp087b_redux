@@ -185,12 +185,15 @@ pub fn player_label_floor(
 }
 
 pub fn player_death(
+    time: Res<Time>,
     mut query: Query<&mut Player>,
     mut commands: Commands,
     audio_assets: Res<AudioAssets>,
     mut rng: ResMut<GlobalEntropy<WyRand>>,
     // mut ambient_light: ResMut<AmbientLight>,
 ) {
+    let dt = time.delta_seconds();
+
     if let Ok(mut player) = query.get_single_mut() {
         if player.kill_timer > 0.0 {
             if player.kill_timer == 1.0 {
@@ -200,7 +203,7 @@ pub fn player_death(
                 });
             }
 
-            player.kill_timer += 1.0;
+            player.kill_timer += 1.0 * dt;
 
             // let secs = player.kill_timer.elapsed().as_secs_f32();
             // ambient_light.color = Color::srgb_from_array([255.0 - secs, 100.0 - secs, 100.0 - secs]);
@@ -216,6 +219,30 @@ pub fn player_death(
             }
         }
     }
+}
+
+pub fn player_ambience(
+    mut commands: Commands,
+    audio_assets: Res<AudioAssets>,
+    mut rng: ResMut<GlobalEntropy<WyRand>>,
+) {
+    if rng.gen_range(1..1000) < 2 {
+        // TODO: Make 3d audio.
+        commands.spawn(AudioBundle {
+            source: audio_assets.ambient_sfx[rng.gen_range(0..8)].clone(),
+            settings: PlaybackSettings::ONCE,
+        });
+    }
+}
+
+pub fn player_fall_damage(mut query: Query<(&mut Player, &LinearVelocity)>) {
+    // for (mut player, linear_velocity) in &mut query {
+    //     info!("Player Y Velocity: {:#?}", linear_velocity.y);
+
+    //     if linear_velocity.y < -0.09 {
+    //         player.kill_timer = player.kill_timer.max(1.0);
+    //     }
+    // }
 }
 
 fn get_input_axis<A: Actionlike>(paction: &A, saction: &A, action_state: &ActionState<A>) -> f32 {
