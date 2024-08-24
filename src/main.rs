@@ -1,7 +1,6 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_mod_billboard::prelude::*;
 use bevy_rand::prelude::*;
 use game::GamePlugin;
@@ -31,7 +30,6 @@ fn main() {
             bevy_panic_handler::PanicHandler::new().build(),
             PhysicsPlugins::default(),
             BillboardPlugin,
-            WorldInspectorPlugin::new(),
         ))
         .init_state::<AppState>()
         .add_loading_state(

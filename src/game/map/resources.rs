@@ -1,6 +1,80 @@
-use bevy::prelude::*;
+use super::FLOOR_AMOUNT;
+use crate::resources::MapAssets;
+use avian3d::prelude::*;
+use bevy::{prelude::*, utils::HashMap};
 use bevy_rand::prelude::*;
-use rand::Rng;
+use rand::prelude::*;
+
+#[derive(Resource, Default)]
+pub struct ObjectPool {
+    available_rooms: HashMap<RoomType, Vec<Entity>>,
+    pub active_rooms: HashMap<usize, Entity>,
+}
+
+impl ObjectPool {
+    pub fn get_or_spawn(
+        &mut self,
+        room_index: usize,
+        room: &Room,
+        commands: &mut Commands,
+        map_assets: &Res<MapAssets>,
+        transform: Transform,
+    ) -> Entity {
+        // Check if the room is already active
+        if let Some(&entity) = self.active_rooms.get(&room_index) {
+            // Update the transform if the room is already active
+            commands.entity(entity).insert(transform);
+            return entity;
+        }
+
+        // Get the available rooms list, or create an empty list if none exists
+        let available_rooms = self.available_rooms.entry(room.kind).or_default();
+
+        let entity = if let Some(entity) = available_rooms.pop() {
+            commands.entity(entity).insert(transform);
+            entity
+        } else {
+            // Spawn a new entity if none are available
+            let scene = match room.kind {
+                RoomType::Map => map_assets.map.clone(),
+                RoomType::Map0 => map_assets.map0.clone(),
+                RoomType::Map1 => map_assets.map1.clone(),
+                RoomType::Map2 => map_assets.map2.clone(),
+                RoomType::Map3 => map_assets.map3.clone(),
+                RoomType::Map4 => map_assets.map4.clone(),
+                RoomType::Map5 => map_assets.map5.clone(),
+                RoomType::Map6 => map_assets.map6.clone(),
+                RoomType::Maze => map_assets.map7.clone(),
+            };
+
+            let new_entity = commands
+                .spawn((
+                    SceneBundle {
+                        scene,
+                        transform,
+                        ..default()
+                    },
+                    ColliderConstructorHierarchy::new(Some(ColliderConstructor::TrimeshFromMesh)),
+                    RigidBody::Static,
+                ))
+                .id();
+            new_entity
+        };
+
+        // Mark this room as active
+        self.active_rooms.insert(room_index, entity);
+        entity
+    }
+
+    pub fn release(&mut self, room_index: usize, room_type: RoomType) {
+        if let Some(entity) = self.active_rooms.remove(&room_index) {
+            self.available_rooms
+                .entry(room_type)
+                .or_default()
+                .push(entity);
+        }
+    }
+}
 
 #[derive(PartialEq, Eq, Default, Clone, Copy, Debug)]
 pub enum FloorAction {
@@ -57,15 +131,17 @@ pub struct Map {
     pub rooms: Vec<Room>,
 }
 
-impl Map {
-    pub fn new(floor_amount: usize) -> Self {
+impl Default for Map {
+    fn default() -> Self {
         Self {
-            floor_amount,
-            floors: vec![Floor::default(); floor_amount],
+            floor_amount: FLOOR_AMOUNT,
+            floors: vec![Floor::default(); FLOOR_AMOUNT],
             rooms: Default::default(),
         }
     }
+}
 
+impl Map {
     pub fn generate(&mut self, rng: &mut ResMut<GlobalEntropy<WyRand>>) {
         self.assign_floor_action(1, FloorAction::Proceed, 1.0);
 
@@ -244,35 +320,4 @@ impl Map {
 
         [above_room, current_room, bottom_room]
     }
-}
-
-pub fn floor_transform(i: usize) -> Transform {
-    let mut transform = Transform::default();
-
-    if (i as f32 / 2.0).floor() == (i as f32 / 2.0).ceil() {
-        // parillinen
-        transform.translation = Vec3::new(0.0, -(i as f32) * 2.0, 0.0);
-    } else {
-        // pariton
-        transform.rotate_y(f32::to_radians(180.0));
-        transform.translation = Vec3::new(8.0, -(i as f32) * 2.0, 7.0);
-    }
-
-    transform
-}
-
-pub fn room_label_transform(i: usize) -> Transform {
-    let mut transform = Transform {
-        rotation: Quat::from_rotation_x(f32::to_radians(-90.0)),
-        ..default()
-    };
-
-    if (i as f32 / 2.0).floor() == (i as f32 / 2.0).ceil() {
-        transform.translation = Vec3::new(-0.24, -(i as f32) * 2.0 - 0.6, 0.5);
-        transform.rotate_y(f32::to_radians(180.0));
-    } else {
-        transform.translation = Vec3::new(7.4 + 0.6 + 0.24, -(i as f32) * 2.0 - 0.6, 6.0 + 0.5);
-    }
-
-    transform
 }

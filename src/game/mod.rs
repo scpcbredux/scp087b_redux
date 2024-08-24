@@ -1,31 +1,32 @@
 use crate::AppState;
 use bevy::prelude::*;
+use enemy::EnemyPlugin;
+use glimpse::GlimpsePlugin;
 use leafwing_input_manager::prelude::*;
+use map::MapPlugin;
 use player::{resources::PlayerAction, PlayerPlugin};
-use pooling::ObjectPool;
 use systems::*;
 
-mod components;
-mod map_gen;
+mod enemy;
+mod glimpse;
+mod map;
 mod player;
-mod pooling;
 mod systems;
-
-pub const FLOOR_AMOUNT: usize = 210;
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((PlayerPlugin, InputManagerPlugin::<PlayerAction>::default()))
-            .insert_resource(ObjectPool::default())
-            .add_systems(
-                OnEnter(AppState::Game),
-                (create_map, create_glimpses, create_player).chain(),
-            )
-            .add_systems(
-                Update,
-                (update_floors, update_glimpses).run_if(in_state(AppState::Game)),
-            );
+        app.add_plugins((
+            EnemyPlugin,
+            GlimpsePlugin,
+            MapPlugin,
+            PlayerPlugin,
+            InputManagerPlugin::<PlayerAction>::default(),
+        ))
+        .add_systems(
+            OnEnter(AppState::Game),
+            (spawn_map, spawn_player, spawn_glimpses, spawn_enemies).chain(),
+        );
     }
 }

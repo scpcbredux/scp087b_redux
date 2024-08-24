@@ -1,15 +1,14 @@
+use super::{components::*, resources::*, ANGLE_EPSILON};
 use crate::{
-    game::{
+    game::map::{
         components::{FloorLabel, FloorLabelUi},
-        map_gen::{floor_transform, room_label_transform, Map},
-        pooling::ObjectPool,
+        resources::{Map, ObjectPool},
+        systems::{floor_transform, room_label_transform},
     },
     resources::{AudioAssets, MapAssets},
 };
-
-use super::{components::*, resources::*, ANGLE_EPSILON};
 use avian3d::prelude::*;
-use bevy::prelude::*;
+use bevy::{prelude::*, window::CursorGrabMode};
 use bevy_rand::prelude::*;
 use leafwing_input_manager::prelude::*;
 use rand::prelude::*;
@@ -18,6 +17,13 @@ use std::{
     f32::consts::{FRAC_PI_2, PI, TAU},
     time::Duration,
 };
+
+pub fn player_spawn(mut windows: Query<&mut Window>) {
+    if let Ok(mut window) = windows.get_single_mut() {
+        window.cursor.visible = false;
+        window.cursor.grab_mode = CursorGrabMode::Locked;
+    }
+}
 
 pub fn player_input(
     query: Query<(&ActionState<PlayerAction>, &Player)>,
@@ -235,15 +241,15 @@ pub fn player_ambience(
     }
 }
 
-pub fn player_fall_damage(mut query: Query<(&mut Player, &LinearVelocity)>) {
-    // for (mut player, linear_velocity) in &mut query {
-    //     info!("Player Y Velocity: {:#?}", linear_velocity.y);
+// pub fn player_fall_damage(mut query: Query<(&mut Player, &LinearVelocity)>) {
+//     for (mut player, linear_velocity) in &mut query {
+//         info!("Player Y Velocity: {:#?}", linear_velocity.y);
 
-    //     if linear_velocity.y < -0.09 {
-    //         player.kill_timer = player.kill_timer.max(1.0);
-    //     }
-    // }
-}
+//         if linear_velocity.y < -0.09 {
+//             player.kill_timer = player.kill_timer.max(1.0);
+//         }
+//     }
+// }
 
 fn get_input_axis<A: Actionlike>(paction: &A, saction: &A, action_state: &ActionState<A>) -> f32 {
     get_input_value(paction, action_state) - get_input_value(saction, action_state)

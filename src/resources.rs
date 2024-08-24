@@ -40,6 +40,7 @@ pub struct AudioAssets {
 pub struct MapAssets {
     #[asset(path = "map/scp.jpg")]
     pub scp_logo: Handle<Image>,
+
     // TODO: Make into an array: rooms
     #[asset(path = "map/rooms/map0.gltf#Scene0")]
     pub map0: Handle<Scene>,
@@ -60,6 +61,7 @@ pub struct MapAssets {
     // TODO: Finish the maze
     #[asset(path = "map/rooms/maze.glb#Scene0")]
     pub map7: Handle<Scene>,
+
     #[asset(path = "map/door.jpg")]
     pub door_texture: Handle<Image>,
     #[asset(path = "map/Pretext.TTF")]
@@ -68,4 +70,13 @@ pub struct MapAssets {
     pub sign_texture: Handle<Image>,
     #[asset(path = "map/glimpses", collection(typed))]
     pub glimpse_textures: Vec<Handle<Image>>,
+
+    #[asset(path = "map/mental.gltf#Scene0")]
+    pub mental_model: Handle<Scene>,
+
+    #[asset(
+        paths("map/mental.gltf#Animation10", "map/mental.gltf#Animation19"),
+        collection(typed)
+    )]
+    pub mental_animations: Vec<Handle<AnimationClip>>,
 }
