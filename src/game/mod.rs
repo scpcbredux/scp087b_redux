@@ -26,7 +26,7 @@ impl Plugin for GamePlugin {
         ))
         .add_systems(
             OnEnter(AppState::Game),
-            (spawn_map, spawn_player, spawn_glimpses, spawn_enemies).chain(),
+            (spawn_map, spawn_player, spawn_glimpses).chain(),
         );
     }
 }

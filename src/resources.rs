@@ -62,6 +62,9 @@ pub struct MapAssets {
     #[asset(path = "map/rooms/maze.glb#Scene0")]
     pub map7: Handle<Scene>,
 
+    #[asset(path = "map/rooms/brickwall.jpg")]
+    pub brick_wall_texture: Handle<Image>,
+
     #[asset(path = "map/door.jpg")]
     pub door_texture: Handle<Image>,
     #[asset(path = "map/Pretext.TTF")]

@@ -3,7 +3,6 @@ use bevy::{animation::animate_targets, prelude::*};
 use systems::*;
 
 pub mod components;
-pub mod resources;
 mod systems;
 
 pub struct EnemyPlugin;

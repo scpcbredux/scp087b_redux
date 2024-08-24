@@ -1,4 +1,4 @@
-use super::{components::Enemy, resources::Animations};
+use super::components::{Enemy, EnemyAnimations};
 use crate::game::player::components::Player;
 use avian3d::prelude::*;
 use bevy::prelude::*;
@@ -6,10 +6,9 @@ use std::time::Duration;
 
 pub fn enemies_once_loaded(
     mut commands: Commands,
-    animations: Res<Animations>,
-    mut players: Query<(Entity, &mut AnimationPlayer), Added<AnimationPlayer>>,
+    mut players: Query<(Entity, &mut AnimationPlayer, &EnemyAnimations), Added<AnimationPlayer>>,
 ) {
-    for (entity, mut player) in &mut players {
+    for (entity, mut player, animations) in &mut players {
         let mut transitions = AnimationTransitions::new();
 
         // Make sure to start the animation via the `AnimationTransitions`
@@ -52,12 +51,12 @@ pub fn enemies_animation(
             &mut AnimationPlayer,
             &mut AnimationTransitions,
             &LinearVelocity,
+            &EnemyAnimations,
         ),
         With<Enemy>,
     >,
-    animations: Res<Animations>,
 ) {
-    for (mut player, mut transitions, linear_velocity) in &mut animation_players {
+    for (mut player, mut transitions, linear_velocity, animations) in &mut animation_players {
         let current_animation = if linear_velocity.length() > 0.0 {
             animations.animations[1]
         } else {

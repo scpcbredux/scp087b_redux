@@ -205,7 +205,7 @@ pub fn player_death(
             if player.kill_timer == 1.0 {
                 commands.spawn(AudioBundle {
                     source: audio_assets.death_sfx.clone(),
-                    settings: PlaybackSettings::ONCE,
+                    settings: PlaybackSettings::REMOVE,
                 });
             }
 
@@ -236,7 +236,7 @@ pub fn player_ambience(
         // TODO: Make 3d audio.
         commands.spawn(AudioBundle {
             source: audio_assets.ambient_sfx[rng.gen_range(0..8)].clone(),
-            settings: PlaybackSettings::ONCE,
+            settings: PlaybackSettings::REMOVE,
         });
     }
 }

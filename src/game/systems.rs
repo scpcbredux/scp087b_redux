@@ -1,5 +1,5 @@
 use super::{
-    enemy::{components::Enemy, resources::Animations},
+    enemy::components::{Enemy, EnemyAnimations},
     glimpse::components::Glimpse,
     map::{
         components::{FloorLabel, FloorLabelUi},
@@ -235,11 +235,13 @@ pub fn spawn_glimpses(
     }
 }
 
-pub fn spawn_enemies(
-    map_assets: Res<MapAssets>,
-    mut commands: Commands,
-    mut graphs: ResMut<Assets<AnimationGraph>>,
-) {
+pub fn spawn_enemy(
+    map_assets: &Res<MapAssets>,
+    commands: &mut Commands,
+    graphs: &mut ResMut<Assets<AnimationGraph>>,
+    position: Vec3,
+    speed: f32,
+) -> Entity {
     // Build the animation graph
     let mut graph = AnimationGraph::new();
     let animations = graph
@@ -248,37 +250,35 @@ pub fn spawn_enemies(
 
     // Insert a resource with the current scene information
     let graph = graphs.add(graph);
-    commands.insert_resource(Animations {
-        animations,
-        graph: graph.clone(),
-    });
 
     // Enemy
     commands
         .spawn((
             Name::new("Enemy"),
-            SpatialBundle {
-                transform: Transform::from_xyz(-2.0, -1.0, 0.5),
-                ..default()
-            },
+            SpatialBundle::default(),
             Collider::capsule(0.3, 1.0),
             Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
             Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
             RigidBody::Dynamic,
             LockedAxes::new().lock_rotation_x().lock_rotation_z(),
             GravityScale(1.0),
-            // Position::from_xyz(-1.5, -1.0, 0.5),
-            Enemy::default(),
+            Position::new(position),
+            Enemy { speed },
+            EnemyAnimations {
+                animations,
+                graph: graph.clone(),
+            },
         ))
         .with_children(|parent| {
             parent.spawn(SceneBundle {
                 scene: map_assets.mental_model.clone(),
                 transform: Transform {
-                    translation: Vec3::Y * -0.5,
+                    translation: Vec3::Y * -0.7,
                     rotation: Quat::from_rotation_y(f32::to_radians(180.0)),
                     scale: Vec3::splat(0.17),
                 },
                 ..default()
             });
-        });
+        })
+        .id()
 }
